@@ -8,9 +8,6 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var captureManager = WindowCaptureManager()
-    @State private var showingWindowPicker = false
-    
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "pip.fill")
@@ -24,32 +21,39 @@ struct ContentView: View {
             Text("Picture-in-Picture for any window")
                 .foregroundColor(.secondary)
             
-            Button(action: {
-                showingWindowPicker = true
-            }) {
-                Label("Select Window", systemImage: "macwindow")
-                    .font(.headline)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .padding(.horizontal, 40)
+            Divider()
+                .padding(.vertical, 10)
             
-            if captureManager.isCapturing {
-                Button(action: {
-                    captureManager.stopCapture()
-                }) {
-                    Label("Stop Capture", systemImage: "stop.fill")
-                        .foregroundColor(.red)
-                }
-                .buttonStyle(.bordered)
+            Text("Press to capture the current window:")
+                .font(.headline)
+            
+            HStack(spacing: 8) {
+                Text("⌃")
+                    .font(.title)
+                    .fontWeight(.bold)
+                Text("⌘")
+                    .font(.title)
+                    .fontWeight(.bold)
+                Text("P")
+                    .font(.title)
+                    .fontWeight(.bold)
             }
+            .padding(16)
+            .background(Color.accentColor.opacity(0.2))
+            .cornerRadius(8)
+            
+            Text("Control + Command + P")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Text("Will capture the highest resolution window\nfrom the current active app")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
         }
         .padding(40)
         .frame(minWidth: 400, minHeight: 300)
-        .sheet(isPresented: $showingWindowPicker) {
-            WindowPicker(captureManager: captureManager, isPresented: $showingWindowPicker)
-        }
     }
 }
 

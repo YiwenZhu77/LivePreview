@@ -25,6 +25,7 @@ class WindowCaptureManager: NSObject, ObservableObject {
     }
     
     // 获取可用窗口列表
+    // 获取可用窗口列表
     func refreshAvailableWindows() async {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
@@ -32,12 +33,52 @@ class WindowCaptureManager: NSObject, ObservableObject {
             // 过滤掉没有标题的窗口和自己的窗口
             let selfPID = ProcessInfo.processInfo.processIdentifier
             
-            availableWindows = content.windows.filter { window in
+            let filteredWindows = content.windows.filter { window in
                 guard let title = window.title, !title.isEmpty else { return false }
                 guard window.owningApplication?.processID != selfPID else { return false }
                 guard window.frame.width > 100 && window.frame.height > 100 else { return false }
                 return true
-            }.sorted { ($0.title ?? "") < ($1.title ?? "") }
+            }
+            
+            // 去重：同一应用的相同标题窗口，只保留分辨率最高的
+            var windowsByKey: [String: [SCWindow]] = [:]
+            
+            for window in filteredWindows {
+                let appPID = window.owningApplication?.processID ?? 0
+                let appName = window.owningApplication?.applicationName ?? ""
+                let title = window.title ?? ""
+                // 使用应用名称和标题作为key，因为PID在某些情况下可能不同
+                let key = "\(appName)|\(title)"
+                
+                if windowsByKey[key] == nil {
+                    windowsByKey[key] = []
+                }
+                windowsByKey[key]?.append(window)
+            }
+            
+            // 为每个key保留分辨率最高的窗口
+            var uniqueWindows: [SCWindow] = []
+            for (key, windows) in windowsByKey {
+                if windows.count > 1 {
+                    NSLog("[DEDUP] Found \(windows.count) windows for key: \(key)")
+                    for w in windows {
+                        NSLog("[DEDUP]   - Size: \(Int(w.frame.width))×\(Int(w.frame.height))")
+                    }
+                }
+                
+                if let maxResolutionWindow = windows.max(by: { w1, w2 in
+                    let area1 = w1.frame.width * w1.frame.height
+                    let area2 = w2.frame.width * w2.frame.height
+                    return area1 < area2
+                }) {
+                    uniqueWindows.append(maxResolutionWindow)
+                    if windows.count > 1 {
+                        NSLog("[DEDUP]   → Keeping: \(Int(maxResolutionWindow.frame.width))×\(Int(maxResolutionWindow.frame.height))")
+                    }
+                }
+            }
+            
+            availableWindows = uniqueWindows.sorted { ($0.title ?? "") < ($1.title ?? "") }
             
         } catch {
             self.error = "Failed to get windows: \(error.localizedDescription)"
@@ -45,7 +86,7 @@ class WindowCaptureManager: NSObject, ObservableObject {
     }
     
     // 开始捕获指定窗口
-    func startCapture(window: SCWindow) async {
+    func startCapture(window: SCWindow, showWindow: Bool = true) async {
         do {
             // 停止现有捕获
             await stopCapture()
@@ -79,8 +120,10 @@ class WindowCaptureManager: NSObject, ObservableObject {
             isCapturing = true
             error = nil
             
-            // 打开 PiP 窗口
-            openPiPWindow(for: window)
+            // 打开 PiP 窗口（可选，AppDelegate 已创建窗口时传 showWindow=false）
+            if showWindow {
+                openPiPWindow(for: window)
+            }
             
         } catch {
             self.error = "Failed to start capture: \(error.localizedDescription)"

@@ -13,6 +13,7 @@ import ScreenCaptureKit
 class PiPWindowController: NSWindowController {
     private var captureManager: WindowCaptureManager?
     private var sourceWindow: SCWindow?
+    var onClose: (() -> Void)?
     
     convenience init() {
         let window = PiPPanel(
@@ -86,6 +87,7 @@ class PiPWindowController: NSWindowController {
     override func close() {
         captureManager?.stopCapture()
         super.close()
+        onClose?()
     }
 }
 
