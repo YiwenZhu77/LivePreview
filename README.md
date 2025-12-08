@@ -1,3 +1,30 @@
-# macOnTop
+# LivePreview
 
-A macOS utility application.
+用全局快捷键把任意前台窗口变成画中画（PiP）浮窗，持续实时预览，而不是截图或卡帧。
+
+## 特性
+- 全局快捷键：默认 `⌃⌘P`，直接捕获当前前台应用的最清晰窗口；可在菜单栏改键。
+- 窗口去重：同应用同标题时自动选分辨率最高的那个，避免抓到缩略图或影子窗。
+- 逐窗开关：对已在 PiP 的窗口再次按快捷键即关闭该 PiP，不留空白；换窗口会新开新的 PiP。
+- PiP 控件：悬停显示关闭按钮、置顶切换（Pin）、透明度滑块，支持拖动与缩放，保持原窗口宽高比。
+- 游标保留：捕获时保留鼠标，方便演示；如不需可在代码里关闭。
+
+## 为什么做这个
+市面上常见的“置顶/浮窗”工具多基于截图或周期性刷新，无法提供真正的实时预览，窗口内容变化（播放、动画、IDE 状态）不够流畅。LivePreview 依赖 ScreenCaptureKit 对目标窗口做实时采集，保持帧率和清晰度，并用 PiP 窗口做轻量展示，适合边看视频/会议/监控输出、边在前台工作。
+
+## 使用方式
+1. 首次运行授予屏幕录制权限（System Settings → Privacy & Security → Screen Recording）。
+2. 菜单栏选择“Capture Current Window”或直接按默认快捷键 `⌃⌘P`。
+3. 在 PiP 浮窗悬停可调透明度/置顶或关闭。
+4. 需要改快捷键时，菜单栏选择 “Set Shortcut…” 捕获新组合键（至少包含一个修饰键）。
+
+## 注意事项 / Caveats
+- 需要屏幕录制权限；快捷键监听需要“辅助功能”权限（Accessibility）。
+- 仅 macOS 14+（ScreenCaptureKit 依赖）；Arm64 构建，Intel 未验证。
+- 不捕获音频，只有视频画面。
+- 如果目标窗口被最小化，系统层面可能无法继续采集；请保持窗口可见。
+- 退出前可在菜单栏手动关闭所有 PiP；单窗可重复按快捷键关闭。
+
+## 开发
+- 编译：`scripts/build_to_app.sh`（Release，签名到 /Applications/LivePreview.app）。
+- Debug 本地跑：`./build_and_run.sh`（无签名）。
